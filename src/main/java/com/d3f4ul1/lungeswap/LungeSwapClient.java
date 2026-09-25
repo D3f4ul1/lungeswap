@@ -1,4 +1,4 @@
-package com.nat3r.spearswap;
+package com.d3f4ul1.lungeswap;
 
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
@@ -16,16 +16,12 @@ import java.util.Locale;
 /**
  * Client entrypoint.
  *
- * <p>Behaviour is the original SpearSwapper logic, unchanged: scan the hotbar by display name,
- * select the spear, force an attack, revert one tick later.
- *
- * <p>The one deliberate change is the keybind category. The original registered into
- * {@code KeyBinding.Category.MOVEMENT}, which is the vanilla "Movement" group -- that is why the
- * bind showed up mixed in with WASD. It now has its own category.
+ * <p>Scan the hotbar by display name, select the spear, force an attack, revert one tick later.
+ * Nothing here is server-side: the mod only drives your own client's hotbar and attack key.
  */
-public class SpearSwapClient implements ClientModInitializer {
+public class LungeSwapClient implements ClientModInitializer {
 
-    public static final String MOD_ID = "spearswap";
+    public static final String MOD_ID = "lungeswap";
 
     /**
      * MAPPING: Yarn has no {@code KeyMapping} class and no {@code Category.register}; it is
@@ -35,7 +31,7 @@ public class SpearSwapClient implements ClientModInitializer {
      *
      * <p>The label resolves via {@code Category.getLabel()} ->
      * {@code id.toTranslationKey("key.category")} = {@code key.category.<namespace>.<path>}, which
-     * is why the lang key is {@code key.category.spearswap.main}.
+     * is why the lang key is {@code key.category.lungeswap.main}.
      */
     public static final KeyBinding.Category CATEGORY =
             KeyBinding.Category.create(Identifier.of(MOD_ID, "main"));
@@ -44,10 +40,9 @@ public class SpearSwapClient implements ClientModInitializer {
 
     @Override
     public void onInitializeClient() {
-        // Default key G, same as the original. The category is ours, so it no longer sits in the
-        // Movement group.
+        // Default key G. Its own category, so it does not show up mixed in with the Movement group.
         swapKeyBinding = KeyBindingHelper.registerKeyBinding(new KeyBinding(
-                "key.spearswap.swap",
+                "key.lungeswap.swap",
                 InputUtil.Type.KEYSYM,
                 GLFW.GLFW_KEY_G,
                 CATEGORY));
@@ -69,8 +64,8 @@ public class SpearSwapClient implements ClientModInitializer {
 
         for (int slot = 0; slot < 9; slot++) {
             ItemStack stack = mc.player.getInventory().getStack(slot);
-            // Original behaviour: match on the localised display name. Crude, but it catches any
-            // spear regardless of how the item is registered.
+            // Match on the localised display name. Crude, but it catches any spear regardless of
+            // how the item is registered -- modded spears included.
             String name = stack.getName().getString().toLowerCase(Locale.ROOT);
             if (name.contains("spear") || name.contains("trident")) {
                 targetSlot = slot;
@@ -79,8 +74,7 @@ public class SpearSwapClient implements ClientModInitializer {
         }
 
         // MAPPING: `inventory.selectedSlot` is `private int selectedSlot` on 1.21.11; use the
-        // accessor. (The original widened the field; the accessor is public API and needs no
-        // widener.)
+        // accessor, which is public API and needs no widener.
         int currentSlot = mc.player.getInventory().getSelectedSlot();
 
         if (targetSlot != -1 && targetSlot != currentSlot) {

@@ -13,7 +13,7 @@ base {
 // Required for the build to apply the widening; declaring it in fabric.mod.json alone is not
 // enough and compilation fails with "doAttack() has private access in MinecraftClient".
 loom {
-	accessWidenerPath = file("src/main/resources/spearswap.accesswidener")
+	accessWidenerPath = file("src/main/resources/lungeswap.accesswidener")
 }
 
 repositories {

@@ -1,22 +1,22 @@
 {
 	"schemaVersion": 1,
-	"id": "spearswap",
+	"id": "lungeswap",
 	"version": "${version}",
-	"name": "Spear Swap",
-	"description": "Swaps to your spear, performs an instant attack, and swaps back. Own keybind category.",
+	"name": "LungeSwap",
+	"description": "Swap to your spear or trident, land an instant attack, and swap back on a single keybind. A quick hotbar swap for spear combat and 1.21.11 PvP. Client-side, no config needed.",
 	"authors": [
 		"D3f4ul1"
 	],
 	"contact": {
-		"homepage": "https://github.com/D3f4ul1/spearswap",
-		"sources": "https://github.com/D3f4ul1/spearswap"
+		"homepage": "https://github.com/D3f4ul1/lungeswap",
+		"sources": "https://github.com/D3f4ul1/lungeswap/issues"
 	},
 	"license": "MIT",
 	"environment": "client",
-	"accessWidener": "spearswap.accesswidener",
+	"accessWidener": "lungeswap.accesswidener",
 	"entrypoints": {
 		"client": [
-			"com.nat3r.spearswap.SpearSwapClient"
+			"com.d3f4ul1.lungeswap.LungeSwapClient"
 		]
 	},
 	"depends": {
