@@ -1,0 +1,28 @@
+{
+	"schemaVersion": 1,
+	"id": "spearswap",
+	"version": "${version}",
+	"name": "Spear Swap",
+	"description": "Swaps to your spear, performs an instant attack, and swaps back. Own keybind category.",
+	"authors": [
+		"D3f4ul1"
+	],
+	"contact": {
+		"homepage": "https://github.com/D3f4ul1/spearswap",
+		"sources": "https://github.com/D3f4ul1/spearswap"
+	},
+	"license": "MIT",
+	"environment": "client",
+	"accessWidener": "spearswap.accesswidener",
+	"entrypoints": {
+		"client": [
+			"com.nat3r.spearswap.SpearSwapClient"
+		]
+	},
+	"depends": {
+		"fabricloader": ">=0.19.5",
+		"minecraft": "~1.21.11",
+		"java": ">=21",
+		"fabric-api": "*"
+	}
+}

@@ -1,0 +1,9 @@
+# Normalize line endings on commit
+* text=auto
+
+# Gradle wrapper scripts (gradlew must stay LF to run on Linux/macOS)
+gradlew text eol=lf
+*.bat text eol=crlf
+
+# Binaries
+*.jar binary

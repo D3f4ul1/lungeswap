@@ -1,0 +1,25 @@
+# Gradle
+.gradle/
+build/
+out/
+
+# Loom
+run/
+remappedSrc/
+
+# IDE
+.idea/
+*.iml
+.vscode/
+.classpath
+.project
+.settings/
+*.launch
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Local only
+_disabled-backup/
+.freebuff/
