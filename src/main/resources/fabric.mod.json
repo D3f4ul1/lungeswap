@@ -3,7 +3,7 @@
 	"id": "lungeswap",
 	"version": "${version}",
 	"name": "LungeSwap",
-	"description": "Swap to your spear or trident, land an instant attack, and swap back on a single keybind. A quick hotbar swap for spear combat and 1.21.11 PvP. Client-side, no config needed.",
+	"description": "Spear swap helper for Minecraft 1.21.11: one key swaps to your spear or trident, attacks, and swaps back instantly. Also known as a lunge swap or spear helper. Client-side, works on any server, no config.",
 	"authors": [
 		"D3f4ul1"
 	],

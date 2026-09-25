@@ -2,7 +2,9 @@
 
 A small client-side Fabric mod. Press **G** to instantly swap to your spear, land one attack, and swap right back.
 
-It scans your hotbar for an item whose name contains `spear` or `trident`, selects it, attacks, and reverts to the slot you were on a tick later. Your main weapon is never out of your hand for more than a single tick. No config, no HUD, nothing else.
+In short: a **spear swap helper**. It scans your hotbar for an item whose name contains `spear` or `trident`, selects it, attacks, and reverts to the slot you were on a tick later. Your main weapon is never out of your hand for more than a single tick. No config, no HUD, nothing else.
+
+Also written up as **lunge swap** and **spear helper**.
 
 Because it only drives your own hotbar and attack key, it works on any server — nothing is needed on the other side.
 
