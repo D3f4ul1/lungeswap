@@ -13,6 +13,7 @@
 	},
 	"license": "MIT",
 	"environment": "client",
+	"icon": "assets/lungeswap/icon.png",
 	"accessWidener": "lungeswap.accesswidener",
 	"entrypoints": {
 		"client": [
