@@ -1,158 +1,156 @@
 #!/usr/bin/env python3
 """Generate the LungeSwap icon and logo.
 
-The art is authored on a 32x32 grid -- the same resolution as a vanilla item sprite -- and
-then scaled up with nearest-neighbour, so every pixel stays square and crisp instead of going
-soft. That is what makes it read as Minecraft art rather than as a resized drawing.
+The spear is the *actual* vanilla Netherite Spear item texture, read straight out of the
+Minecraft client jar -- not a redraw. Everything else (panel, ring, halo) is drawn on a 64x64
+grid and the whole thing is nearest-neighbour upscaled, so the vanilla sprite lands on a clean
+integer scale and its pixels stay square and untouched.
 
-Run it from the project root:
+Because the sprite is Mojang's asset, it is deliberately NOT vendored into this repository.
+The script reads it from your local Minecraft client jar, which means:
 
-    python tools/make_icon.py
+    - you need Minecraft 1.21.11 installed through Fabric Loom (run ./gradlew build once), and
+    - anyone regenerating the icon needs the same.
 
-Writes:
+Usage:
+
+    python tools/make_icon.py                    # writes the real asset paths
+    python tools/make_icon.py --out /tmp/icons   # write elsewhere, for a look
+
+Writes, relative to --out (project root by default):
     src/main/resources/assets/lungeswap/icon.png   128x128, the in-game mod icon
     logo.png                                       512x512, for the README and mod pages
 """
 
-from math import cos, radians, sin
+import argparse
+import io
+import pathlib
+import zipfile
 
 from PIL import Image, ImageDraw, ImageFilter
 
-BASE = 32   # authoring resolution
-ICON = 128  # in-game mod icon
-LOGO = 512  # README / mod page
+VERSION = "1.21.11"
+SPRITE = "assets/minecraft/textures/item/netherite_spear.png"
 
-# Vanilla-adjacent palette: flat fills with a dark outline and a light/dark edge pair, which
-# is how vanilla sprites stay readable when they are only a handful of pixels across.
-OUTLINE = (22, 18, 28, 255)
+BASE = 64    # authoring grid
+SPRITE_SCALE = 2  # 16x16 vanilla sprite -> 32x32 on the authoring grid
+ICON = 128   # BASE * 2
+LOGO = 512   # BASE * 8
 
-BG = (34, 39, 47, 255)
-BEVEL_LIGHT = (78, 88, 104, 255)
-BEVEL_DARK = (19, 22, 27, 255)
+# Netherite palette: dark and purple, matching the material the sprite is made of.
+BG = (30, 22, 34, 255)
+BG_LIT = (78, 56, 92, 255)
+BG_DARK = (14, 10, 16, 255)
 
-WOOD_LIGHT = (172, 136, 90, 255)
-WOOD_MID = (124, 94, 58, 255)
-WOOD_DARK = (85, 62, 37, 255)
+ACCENT_LIT = (214, 176, 250, 255)
+ACCENT_MID = (162, 106, 226, 255)
+ACCENT_DARK = (92, 52, 150, 255)
 
-# Diamond-tier spear head: cyan reads as the tier people actually fight with.
-HEAD_LIGHT = (108, 245, 226, 255)
-HEAD_MID = (43, 179, 163, 255)
+# The sprite is very dark (its brightest pixels only reach about #8F8F8F), so on a dark panel
+# it disappears without something behind it. A crisp pixel halo keeps it readable and still
+# looks hand-made rather than like a soft Photoshop glow.
+HALO = (168, 128, 226, 255)
 
-GREEN_LIGHT = (150, 226, 106, 255)
-GREEN_MID = (98, 179, 59, 255)
-GREEN_DARK = (52, 107, 28, 255)
-
-CX = CY = 15.5  # centre of the art
-RING_R = 11.5   # radius of the arrow ring
-
-# The spear runs along the main diagonal, so the arrow heads sit on the *other* diagonal where
-# nothing else is happening. Overlapping them was what turned the top-right corner into mush.
-HEADS = (40.0, 220.0)
-ARC_A = (250, 40)  # sweeps clockwise over the top
-ARC_B = (70, 220)  # sweeps clockwise under the bottom
+# Ring radius on the 64 grid. The sprite reaches out to radius 21.2, so the band has to start
+# outside that or the tip collides with the ring instead of sitting cleanly inside it.
+RING_R = 25
+RING_W = 5      # ring thickness
 
 
-def background():
-    """A flat beveled panel, framed the way a vanilla inventory slot is."""
+def find_sprite():
+    """Pull the vanilla spear texture out of the local Minecraft client jar."""
+    jar = (
+        pathlib.Path.home()
+        / ".gradle/caches/fabric-loom" / VERSION / "minecraft-client.jar"
+    )
+    if not jar.is_file():
+        raise SystemExit(
+            f"Could not find the Minecraft client jar at:\n  {jar}\n"
+            "Install Minecraft through Fabric Loom (run ./gradlew build once) and retry."
+        )
+    with zipfile.ZipFile(jar) as z:
+        return Image.open(io.BytesIO(z.read(SPRITE))).convert("RGBA")
+
+
+def panel():
+    """A dark beveled panel, framed the way a vanilla inventory slot is."""
     img = Image.new("RGBA", (BASE, BASE), BG)
     d = ImageDraw.Draw(img)
-
-    d.line([(0, 0), (BASE - 1, 0)], fill=BEVEL_LIGHT, width=2)
-    d.line([(0, 0), (0, BASE - 1)], fill=BEVEL_LIGHT, width=2)
-    d.line([(0, BASE - 1), (BASE - 1, BASE - 1)], fill=BEVEL_DARK, width=2)
-    d.line([(BASE - 1, 0), (BASE - 1, BASE - 1)], fill=BEVEL_DARK, width=2)
+    w = 3
+    d.line([(0, 0), (BASE - 1, 0)], fill=BG_LIT, width=w)
+    d.line([(0, 0), (0, BASE - 1)], fill=BG_LIT, width=w)
+    d.line([(0, BASE - 1), (BASE - 1, BASE - 1)], fill=BG_DARK, width=w)
+    d.line([(BASE - 1, 0), (BASE - 1, BASE - 1)], fill=BG_DARK, width=w)
     return img
 
 
-def with_outline(img, color=OUTLINE, thickness=1):
-    """Ring the opaque pixels in a dark border, as vanilla sprites do."""
-    grown = img.getchannel("A").filter(ImageFilter.MaxFilter(2 * thickness + 1))
-    border = Image.new("RGBA", img.size, color)
-    border.putalpha(grown)
-    return Image.alpha_composite(border, img)
-
-
-def _ring_arc(d, radius, start, end, color):
-    d.arc(
-        [CX - radius, CY - radius, CX + radius, CY + radius],
-        start=start,
-        end=end,
-        fill=color,
-        width=1,
-    )
-
-
-def _arrowhead(d, angle_deg, size=3.4):
-    """A chunky triangle sitting at the leading end of an arc, pointing the way it travels."""
-    th = radians(angle_deg)
-    px, py = CX + RING_R * cos(th), CY + RING_R * sin(th)
-    tx, ty = -sin(th), cos(th)   # tangent: the direction a clockwise arc is moving
-    ux, uy = -ty, tx             # perpendicular, to spread the base of the head
-    d.polygon(
-        [
-            (px + tx * size, py + ty * size),
-            (px - tx * size * 0.45 + ux * size, py - ty * size * 0.45 + uy * size),
-            (px - tx * size * 0.45 - ux * size, py - ty * size * 0.45 - uy * size),
-        ],
-        fill=GREEN_MID,
-    )
-
-
-def swap_arrows():
+def ring():
     """Two arcs chasing each other, so the ring reads as motion rather than decoration."""
     img = Image.new("RGBA", (BASE, BASE), (0, 0, 0, 0))
     d = ImageDraw.Draw(img)
+    cx = cy = (BASE - 1) / 2
 
-    for start, end in (ARC_A, ARC_B):
-        # Three concentric 1px arcs give a lit inner edge and a shaded outer one, so the ring
-        # has volume without turning into a thick band.
-        _ring_arc(d, RING_R + 1, start, end, GREEN_DARK)
-        _ring_arc(d, RING_R, start, end, GREEN_MID)
-        _ring_arc(d, RING_R - 1, start, end, GREEN_LIGHT)
+    def arc(radius, start, end, color):
+        d.arc([cx - radius, cy - radius, cx + radius, cy + radius],
+              start=start, end=end, fill=color, width=1)
 
-    for angle in HEADS:
-        _arrowhead(d, angle)
+    # Five concentric 1px arcs: lit inside, shaded outside, so the band has volume.
+    bands = ((RING_R + 2, ACCENT_DARK), (RING_R + 1, ACCENT_DARK), (RING_R, ACCENT_MID),
+             (RING_R - 1, ACCENT_MID), (RING_R - 2, ACCENT_LIT))
+    for start, end in ((250, 40), (70, 220)):
+        for radius, color in bands:
+            arc(radius, start, end, color)
+
+    from math import cos, radians, sin
+    for ang in (40.0, 220.0):
+        th = radians(ang)
+        px, py = cx + RING_R * cos(th), cy + RING_R * sin(th)
+        tx, ty = -sin(th), cos(th)
+        ux, uy = -ty, tx
+        sz = RING_W + 1.6
+        d.polygon([(px + tx * sz, py + ty * sz),
+                   (px - tx * sz * .5 + ux * sz, py - ty * sz * .5 + uy * sz),
+                   (px - tx * sz * .5 - ux * sz, py - ty * sz * .5 - uy * sz)],
+                  fill=ACCENT_MID)
     return img
 
 
-def spear():
-    """A diamond spear along the main diagonal, its tip breaking just past the ring."""
-    img = Image.new("RGBA", (BASE, BASE), (0, 0, 0, 0))
-    d = ImageDraw.Draw(img)
-
-    # Shaft, drawn one column at a time. A 45 degree band has to be a vertical run per column:
-    # offsetting a thick line diagonally makes the light and dark edges collide between steps,
-    # which shows up as a candy-cane checkerboard instead of a smooth shaft.
-    # Centred on the ring: the spear's midpoint lands on (CX, CY) rather than a pixel off it.
-    butt_x, butt_y = 5, 26
-    collar_x, collar_y = 20, 11
-    for i in range(collar_x - butt_x + 1):
-        x = butt_x + i
-        top = butt_y - i - 1
-        d.point((x, top), fill=WOOD_LIGHT)
-        d.point((x, top + 1), fill=WOOD_MID)
-        d.point((x, top + 2), fill=WOOD_DARK)
-
-    tip = (26, 5)
-    base_lo = (22, 13)  # lower-right corner of the blade
-    base_hi = (18, 9)   # upper-left corner, where the highlight goes
-    d.polygon([tip, base_lo, base_hi], fill=HEAD_MID)
-    d.polygon([tip, base_hi, (collar_x, collar_y)], fill=HEAD_LIGHT)
-    return img
+def halo(sprite):
+    """A pixel rim hugging the sprite's silhouette, so the dark sprite lifts off the panel."""
+    # Dilate by two grid units: one grid unit is half a sprite pixel, so this reads as a
+    # one-pixel rim at the sprite's own pixel scale.
+    grown = sprite.getchannel("A").filter(ImageFilter.MaxFilter(5))
+    rim = Image.new("RGBA", sprite.size, HALO)
+    rim.putalpha(grown)
+    return rim
 
 
-def compose():
-    art = background()
-    art = Image.alpha_composite(art, with_outline(swap_arrows()))
-    art = Image.alpha_composite(art, with_outline(spear()))
-    return art
+def compose(sprite):
+    placed = Image.new("RGBA", (BASE, BASE), (0, 0, 0, 0))
+    scaled = sprite.resize((sprite.width * SPRITE_SCALE, sprite.height * SPRITE_SCALE),
+                           Image.NEAREST)
+    offset = ((BASE - scaled.width) // 2, (BASE - scaled.height) // 2)
+    placed.paste(scaled, offset)
+
+    art = panel()
+    art = Image.alpha_composite(art, halo(placed))
+    art = Image.alpha_composite(art, ring())
+    return Image.alpha_composite(art, placed)
 
 
 def main():
-    art = compose()
-    art.resize((ICON, ICON), Image.NEAREST).save("src/main/resources/assets/lungeswap/icon.png")
-    art.resize((LOGO, LOGO), Image.NEAREST).save("logo.png")
-    print(f"wrote icon.png ({ICON}x{ICON}) and logo.png ({LOGO}x{LOGO})")
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--out", default=".", help="output directory (default: project root)")
+    args = ap.parse_args()
+    out = pathlib.Path(args.out)
+
+    art = compose(find_sprite())
+
+    icon_path = out / "src/main/resources/assets/lungeswap/icon.png"
+    icon_path.parent.mkdir(parents=True, exist_ok=True)
+    art.resize((ICON, ICON), Image.NEAREST).save(icon_path)
+    art.resize((LOGO, LOGO), Image.NEAREST).save(out / "logo.png")
+    print(f"wrote {icon_path} ({ICON}x{ICON}) and {out / 'logo.png'} ({LOGO}x{LOGO})")
 
 
 if __name__ == "__main__":
